@@ -1,0 +1,23 @@
+name: sonde
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonde
+  cancel-in-progress: false
+
+jobs:
+  sonde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 sonde.py
+        env:
+          HEALTHCHECKS_URL: ${{ secrets.HEALTHCHECKS_URL }}
