@@ -34,17 +34,21 @@ USER_AGENT = "sondes-chrisheral/1 (+https://github.com/ChrisHeral/sondes)"
 @dataclass(frozen=True)
 class Site:
     domaine: str
+    # Prouve que c'est bien NOTRE application qui répond (et pas une page de parking, un autre
+    # site servi par erreur…). Il figure aussi sur ses propres pages d'erreur : celles-là, seul
+    # le code HTTP les distingue.
     temoin: str
-    # Une URL qui traverse l'application jusqu'à sa base : une page d'accueil peut être
-    # servie alors que la base est tombée.
-    base: tuple[str, str] | None = None
+    # Une route qui traverse l'application jusqu'à sa base, sans cache : une page d'accueil
+    # peut être servie alors que la base est tombée.
+    route_base: str | None = None
+    temoin_base: str | None = None
 
 
 SITES = [
-    Site("achflow.fr", "Achflow"),
-    Site("aplusibdx.fr", "Atelier A+I Bordeaux"),
-    Site("panono.fr", "Panono", base=("/api/events", '"slug":')),
-    Site("monpetittricycle.fr", "Mon Petit Tricycle"),
+    Site("achflow.fr", "Fractional CTO"),
+    Site("aplusibdx.fr", "Architecte"),
+    Site("panono.fr", "des albums de vignettes de sport", route_base="/api/events", temoin_base='"slug":'),
+    Site("monpetittricycle.fr", "Fantasy Cyclisme"),
 ]
 
 
@@ -86,11 +90,11 @@ def controler(site: Site) -> list[str]:
     if code not in (301, 308) or cible.rstrip("/") != racine.rstrip("/"):
         echecs.append(f"www.{site.domaine} → HTTP {code} vers « {cible} », attendu une redirection vers {racine}")
 
-    if site.base:
-        chemin, temoin = site.base
-        code, _, corps = obtenir(f"https://{site.domaine}{chemin}")
-        if code != 200 or temoin not in corps:
-            echecs.append(f"{site.domaine}{chemin} → HTTP {code}, témoin {temoin} {'présent' if temoin in corps else 'absent'}")
+    if site.route_base and site.temoin_base:
+        code, _, corps = obtenir(f"https://{site.domaine}{site.route_base}")
+        if code != 200 or site.temoin_base not in corps:
+            present = "présent" if site.temoin_base in corps else "absent"
+            echecs.append(f"{site.domaine}{site.route_base} → HTTP {code}, témoin {site.temoin_base} {present}")
 
     jours = jours_de_certificat(site.domaine)
     if jours < CERT_JOURS_MIN:
