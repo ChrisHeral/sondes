@@ -119,6 +119,10 @@ def controler_avec_reessai(site: Site) -> list[str]:
 def signaler(rapport: str, succes: bool) -> None:
     url = os.environ.get("HEALTHCHECKS_URL", "").strip()
     if not url:
+        # `gh secret set` sans terminal enregistre un secret vide sans broncher : en CI, un
+        # passage vert sans signal cacherait que l'alerte est désarmée.
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            sys.exit("HEALTHCHECKS_URL vide en CI : aucune alerte possible")
         print("(HEALTHCHECKS_URL absente : aucun signal envoyé)")
         return
     cible = url if succes else f"{url.rstrip('/')}/fail"
